@@ -86,6 +86,10 @@ class ComputeRiskTests(unittest.TestCase):
         self.assertIsNone(result["risk_score"])
         self.assertEqual(result["risk_label"], "계산 불가 (1~4점 리뷰 없음)")
         self.assertEqual(result["sample_label"], "계산 불가")
+        self.assertIsNone(result["p1"])
+        self.assertIsNone(result["p2"])
+        self.assertIsNone(result["p3"])
+        self.assertIsNone(result["p4"])
 
     def test_mixed_counts(self):
         # n_total=20, p1=0.5,p2=0.25,p3=0.15,p4=0.10
@@ -95,6 +99,10 @@ class ComputeRiskTests(unittest.TestCase):
         self.assertAlmostEqual(result["risk_score"], 0.7375)
         self.assertEqual(result["risk_label"], "리스크 매우 높음")
         self.assertEqual(result["sample_label"], "표본 부족")
+        self.assertAlmostEqual(result["p1"], 0.5)
+        self.assertAlmostEqual(result["p2"], 0.25)
+        self.assertAlmostEqual(result["p3"], 0.15)
+        self.assertAlmostEqual(result["p4"], 0.10)
 
 
 class LoadStarDataframeTests(unittest.TestCase):
@@ -148,6 +156,10 @@ class WriteProductExcelTests(unittest.TestCase):
             summary = wb["요약"]
             summary_values = [cell.value for row in summary.iter_rows() for cell in row]
             self.assertIn("리스크 점수", summary_values)
+            self.assertIn("1점 비율", summary_values)
+            self.assertIn("66.7%", summary_values)  # star1: 2 of 3 (1~4점 합계) reviews
+            self.assertIn("4점 비율", summary_values)
+            self.assertIn("33.3%", summary_values)  # star4: 1 of 3 reviews
 
 
 class MainTests(unittest.TestCase):

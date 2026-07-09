@@ -53,6 +53,7 @@ def compute_risk(n1: int, n2: int, n3: int, n4: int) -> dict:
         return {
             "n1": n1, "n2": n2, "n3": n3, "n4": n4,
             "n_total": 0,
+            "p1": None, "p2": None, "p3": None, "p4": None,
             "risk_score": None,
             "risk_label": "계산 불가 (1~4점 리뷰 없음)",
             "sample_label": "계산 불가",
@@ -63,6 +64,7 @@ def compute_risk(n1: int, n2: int, n3: int, n4: int) -> dict:
     return {
         "n1": n1, "n2": n2, "n3": n3, "n4": n4,
         "n_total": n_total,
+        "p1": p1, "p2": p2, "p3": p3, "p4": p4,
         "risk_score": risk_score,
         "risk_label": risk_score_label(risk_score),
         "sample_label": sample_size_label(n_total),
@@ -82,12 +84,22 @@ def load_star_dataframe(paths: list[Path], add_qual_columns: bool) -> pd.DataFra
     return df
 
 
+def _ratio_display(p: float | None) -> str:
+    if p is None:
+        return "계산 불가"
+    return f"{p * 100:.1f}%"
+
+
 def build_summary_df(risk: dict, n5: int) -> pd.DataFrame:
     rows = [
         ("1점 리뷰 수", risk["n1"]),
+        ("1점 비율", _ratio_display(risk["p1"])),
         ("2점 리뷰 수", risk["n2"]),
+        ("2점 비율", _ratio_display(risk["p2"])),
         ("3점 리뷰 수", risk["n3"]),
+        ("3점 비율", _ratio_display(risk["p3"])),
         ("4점 리뷰 수", risk["n4"]),
+        ("4점 비율", _ratio_display(risk["p4"])),
         ("1~4점 합계(N)", risk["n_total"]),
         ("5점 리뷰 수(참고용)", n5),
         ("리스크 점수", risk["risk_score"] if risk["risk_score"] is not None else "계산 불가"),
