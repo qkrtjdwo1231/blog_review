@@ -26,3 +26,43 @@ def group_files_by_product(folder: Path) -> dict[str, dict[int, list[Path]]]:
         prefix, star = parsed
         groups.setdefault(prefix, {}).setdefault(star, []).append(csv_path)
     return groups
+
+
+def risk_score_label(score: float) -> str:
+    if score < 0.20:
+        return "리스크 낮음"
+    if score < 0.40:
+        return "리스크 보통"
+    if score < 0.60:
+        return "리스크 높음"
+    return "리스크 매우 높음"
+
+
+def sample_size_label(n_total: int) -> str:
+    if n_total < 10:
+        return "표본 매우 부족"
+    if n_total < 30:
+        return "표본 부족"
+    return "표본 충분"
+
+
+def compute_risk(n1: int, n2: int, n3: int, n4: int) -> dict:
+    n_total = n1 + n2 + n3 + n4
+    if n_total == 0:
+        return {
+            "n1": n1, "n2": n2, "n3": n3, "n4": n4,
+            "n_total": 0,
+            "risk_score": None,
+            "risk_label": "계산 불가 (1~4점 리뷰 없음)",
+            "sample_label": "계산 불가",
+        }
+    p1, p2, p3, p4 = n1 / n_total, n2 / n_total, n3 / n_total, n4 / n_total
+    raw = (4 * p1 + 3 * p2 + 2 * p3 - 1 * p4) / 4
+    risk_score = max(0.0, raw)
+    return {
+        "n1": n1, "n2": n2, "n3": n3, "n4": n4,
+        "n_total": n_total,
+        "risk_score": risk_score,
+        "risk_label": risk_score_label(risk_score),
+        "sample_label": sample_size_label(n_total),
+    }
