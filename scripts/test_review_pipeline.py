@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from review_pipeline import compute_risk, group_files_by_product, load_star_dataframe, parse_filename, risk_score_label, sample_size_label, write_product_excel
+from review_pipeline import compute_risk, group_files_by_product, load_star_dataframe, main, parse_filename, risk_score_label, sample_size_label, write_product_excel
 
 
 class ParseFilenameTests(unittest.TestCase):
@@ -148,6 +148,25 @@ class WriteProductExcelTests(unittest.TestCase):
             summary = wb["요약"]
             summary_values = [cell.value for row in summary.iter_rows() for cell in row]
             self.assertIn("리스크 점수", summary_values)
+
+
+class MainTests(unittest.TestCase):
+    def test_processes_all_products_in_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            (tmp_path / "shoe1.csv").write_text(
+                "review_text,date\n별로예요,2025.01.01\n", encoding="utf-8"
+            )
+            (tmp_path / "fan4.csv").write_text(
+                "review_text,date\n괜찮아요,2025.01.02\n", encoding="utf-8"
+            )
+
+            outputs = main(str(tmp_path))
+
+            names = {p.name for p in outputs}
+            self.assertEqual(names, {"shoe_review_analysis.xlsx", "fan_review_analysis.xlsx"})
+            for p in outputs:
+                self.assertTrue(p.exists())
 
 
 if __name__ == "__main__":

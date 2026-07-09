@@ -122,3 +122,20 @@ def write_product_excel(
             if star in star_dfs:
                 star_dfs[star].to_excel(writer, sheet_name=f"{star}점", index=False)
     return out_path
+
+
+def main(folder: str = ".") -> list[Path]:
+    folder_path = Path(folder)
+    groups = group_files_by_product(folder_path)
+    outputs = []
+    for product, star_files in groups.items():
+        out_path = write_product_excel(product, star_files, folder_path)
+        print(f"생성됨: {out_path}")
+        outputs.append(out_path)
+    return outputs
+
+
+if __name__ == "__main__":
+    import sys
+
+    main(sys.argv[1] if len(sys.argv) > 1 else ".")
