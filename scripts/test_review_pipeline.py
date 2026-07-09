@@ -1,9 +1,10 @@
 # review_pipeline.py의 파일명 파싱·그룹핑·리스크 계산·엑셀 생성 로직을 검증하는 테스트
+import openpyxl
 import tempfile
 import unittest
 from pathlib import Path
 
-from review_pipeline import compute_risk, group_files_by_product, parse_filename, risk_score_label, sample_size_label
+from review_pipeline import compute_risk, group_files_by_product, load_star_dataframe, parse_filename, risk_score_label, sample_size_label, write_product_excel
 
 
 class ParseFilenameTests(unittest.TestCase):
@@ -94,6 +95,59 @@ class ComputeRiskTests(unittest.TestCase):
         self.assertAlmostEqual(result["risk_score"], 0.7375)
         self.assertEqual(result["risk_label"], "리스크 매우 높음")
         self.assertEqual(result["sample_label"], "표본 부족")
+
+
+class LoadStarDataframeTests(unittest.TestCase):
+    def test_adds_qual_columns_when_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "shoe1.csv"
+            csv_path.write_text("review_text,date\n소리가 심해요,2025.01.01\n", encoding="utf-8")
+
+            df = load_star_dataframe([csv_path], add_qual_columns=True)
+
+            self.assertEqual(len(df), 1)
+            self.assertIn("핵심_보조_태그", df.columns)
+            self.assertIn("근거_원문_인용", df.columns)
+            self.assertIn("비고", df.columns)
+
+    def test_skips_qual_columns_when_not_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "shoe5.csv"
+            csv_path.write_text("review_text,date\n완전 만족해요,2025.01.02\n", encoding="utf-8")
+
+            df = load_star_dataframe([csv_path], add_qual_columns=False)
+
+            self.assertNotIn("핵심_보조_태그", df.columns)
+
+
+class WriteProductExcelTests(unittest.TestCase):
+    def test_creates_workbook_with_expected_sheets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            star1 = tmp_path / "shoe1.csv"
+            star1.write_text("review_text,date\n소리 나요,2025.01.01\n실밥 터짐,2025.01.02\n", encoding="utf-8")
+            star4 = tmp_path / "shoe4.csv"
+            star4.write_text("review_text,date\n대체로 만족,2025.02.01\n", encoding="utf-8")
+
+            star_files = {1: [star1], 4: [star4]}
+            out_path = write_product_excel("shoe", star_files, tmp_path)
+
+            self.assertTrue(out_path.exists())
+            self.assertEqual(out_path.name, "shoe_review_analysis.xlsx")
+
+            wb = openpyxl.load_workbook(out_path)
+            self.assertEqual(
+                set(wb.sheetnames), {"요약", "1점", "4점"}
+            )
+
+            sheet1 = wb["1점"]
+            header = [cell.value for cell in sheet1[1]]
+            self.assertIn("핵심_보조_태그", header)
+            self.assertEqual(sheet1.max_row, 3)  # 헤더 1행 + 데이터 2행
+
+            summary = wb["요약"]
+            summary_values = [cell.value for row in summary.iter_rows() for cell in row]
+            self.assertIn("리스크 점수", summary_values)
 
 
 if __name__ == "__main__":
