@@ -127,6 +127,21 @@ class LoadStarDataframeTests(unittest.TestCase):
 
             self.assertNotIn("핵심_보조_태그", df.columns)
 
+    def test_drops_web_scraper_columns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "shoe1.csv"
+            csv_path.write_text(
+                "web_scraper_order,web_scraper_start_url,review_text\n"
+                "1783571309-1,https://example.com,소리가 심해요\n",
+                encoding="utf-8",
+            )
+
+            df = load_star_dataframe([csv_path], add_qual_columns=True)
+
+            self.assertNotIn("web_scraper_order", df.columns)
+            self.assertNotIn("web_scraper_start_url", df.columns)
+            self.assertIn("review_text", df.columns)
+
 
 class WriteProductExcelTests(unittest.TestCase):
     def test_creates_workbook_with_expected_sheets(self):

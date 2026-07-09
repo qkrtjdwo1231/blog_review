@@ -78,6 +78,7 @@ def load_star_dataframe(paths: list[Path], add_qual_columns: bool) -> pd.DataFra
     df = pd.concat(
         [pd.read_csv(p, encoding="utf-8") for p in paths], ignore_index=True
     )
+    df = df.drop(columns=[c for c in df.columns if c.startswith("web_scraper")])
     if add_qual_columns:
         for col in QUAL_COLUMNS:
             df[col] = ""
