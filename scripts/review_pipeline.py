@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from pathlib import Path
 
-FILENAME_PATTERN = re.compile(r"^([가-힣a-zA-Z]+)(\d)")
+FILENAME_PATTERN = re.compile(r"^([가-힣a-zA-Z][가-힣a-zA-Z ]*?)(\d)")
 
 
 def parse_filename(filename: str) -> tuple[str, int] | None:
