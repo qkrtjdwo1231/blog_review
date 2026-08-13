@@ -3,6 +3,7 @@ import openpyxl
 import tempfile
 import unittest
 from pathlib import Path
+from PIL import Image as PILImage
 
 from review_pipeline import compute_risk, group_files_by_product, load_star_dataframe, main, parse_filename, risk_score_label, sample_size_label, write_product_excel
 
@@ -175,6 +176,32 @@ class WriteProductExcelTests(unittest.TestCase):
             self.assertIn("66.7%", summary_values)  # star1: 2 of 3 (1~4점 합계) reviews
             self.assertIn("4점 비율", summary_values)
             self.assertIn("33.3%", summary_values)  # star4: 1 of 3 reviews
+
+
+class AddScreenshotSheetTests(unittest.TestCase):
+    def test_embeds_screenshots_in_new_sheet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            star1 = tmp_path / "shoe1.csv"
+            star1.write_text("review_text,date\n소리 나요,2025.01.01\n", encoding="utf-8")
+            PILImage.new("RGB", (100, 50), color="red").save(tmp_path / "스크린샷 1.png")
+
+            out_path = write_product_excel("shoe", {1: [star1]}, tmp_path)
+
+            wb = openpyxl.load_workbook(out_path)
+            self.assertIn("스크린샷", wb.sheetnames)
+            self.assertEqual(len(wb["스크린샷"]._images), 1)
+
+    def test_no_screenshot_sheet_when_no_images(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            star1 = tmp_path / "shoe1.csv"
+            star1.write_text("review_text,date\n소리 나요,2025.01.01\n", encoding="utf-8")
+
+            out_path = write_product_excel("shoe", {1: [star1]}, tmp_path)
+
+            wb = openpyxl.load_workbook(out_path)
+            self.assertNotIn("스크린샷", wb.sheetnames)
 
 
 class MainTests(unittest.TestCase):

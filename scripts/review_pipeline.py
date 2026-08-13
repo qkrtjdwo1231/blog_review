@@ -2,6 +2,7 @@
 import pandas as pd
 import re
 from pathlib import Path
+from openpyxl.drawing.image import Image as XLImage
 
 FILENAME_PATTERN = re.compile(r"^([가-힣a-zA-Z][가-힣a-zA-Z ]*?)(\d)")
 
@@ -110,6 +111,28 @@ def build_summary_df(risk: dict, n5: int) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["항목", "값"])
 
 
+SCREENSHOT_EXTENSIONS = (".png", ".jpg", ".jpeg")
+SCREENSHOT_MAX_WIDTH = 700
+
+
+def add_screenshot_sheet(workbook, out_folder: Path) -> None:
+    screenshot_paths = sorted(
+        p for p in out_folder.iterdir() if p.suffix.lower() in SCREENSHOT_EXTENSIONS
+    )
+    if not screenshot_paths:
+        return
+    ws = workbook.create_sheet("스크린샷")
+    row = 1
+    for path in screenshot_paths:
+        img = XLImage(str(path))
+        if img.width > SCREENSHOT_MAX_WIDTH:
+            scale = SCREENSHOT_MAX_WIDTH / img.width
+            img.width = int(img.width * scale)
+            img.height = int(img.height * scale)
+        ws.add_image(img, f"A{row}")
+        row += img.height // 20 + 2
+
+
 def write_product_excel(
     product: str, star_files: dict[int, list[Path]], out_folder: Path
 ) -> Path:
@@ -134,6 +157,7 @@ def write_product_excel(
         for star in range(1, 6):
             if star in star_dfs:
                 star_dfs[star].to_excel(writer, sheet_name=f"{star}점", index=False)
+        add_screenshot_sheet(writer.book, out_folder)
     return out_path
 
 
